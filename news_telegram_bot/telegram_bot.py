@@ -10,7 +10,6 @@ from telegram.ext import (
     MessageHandler,
     filters,
     ContextTypes,
-    ApplicationBuilder,
 )
 from telegram.constants import ParseMode
 
@@ -70,7 +69,7 @@ async def send_news(
         logger.error(f"Error fetching news: {e}")
         reply_message = "No News!"
 
-    await update.message.reply_text(reply_message, parse_mode=ParseMode.HTML)
+    await update.message.reply_text(reply_message, parse_mode=ParseMode.HTML, reply_markup=ReplyKeyboardRemove())
 
 
 async def ai_news(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -137,7 +136,6 @@ async def main(event, context):
                 CHOOSE_NEWS: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_news_selection)]
             },
             fallbacks=[CommandHandler("cancel", command_cancel)],
-            # conversation_timeout=8,
         )
     )
 
