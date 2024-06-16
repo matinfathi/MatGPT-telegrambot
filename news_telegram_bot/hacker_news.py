@@ -1,3 +1,4 @@
+from embedding import classification
 from constants import HACKER_NEWS_URL
 from utils import HNRecord, logger
 
@@ -63,7 +64,20 @@ def get_ai_news(
         total_list: List[HNRecord],
         num_return: int = 10,
 ) -> List[HNRecord]:
-    ai_list = [news for news in total_list if "AI" in news.title]
+    texts = [item.title for item in total_list]
+    labels = classification(texts, threshold=0.74)
+    ai_list = [total_list[idx] for idx in range(len(total_list)) if labels[idx] == "AI"]
+    max_lim = max(len(ai_list), num_return)
+    return sorted(ai_list, key=lambda x: x.comments, reverse=True)[:max_lim]
+
+
+def get_linux_news(
+        total_list: List[HNRecord],
+        num_return: int = 10,
+) -> List[HNRecord]:
+    texts = [item.title for item in total_list]
+    labels = classification(texts, threshold=0.74)
+    ai_list = [total_list[idx] for idx in range(len(total_list)) if labels[idx] == "Linux"]
     max_lim = max(len(ai_list), num_return)
     return sorted(ai_list, key=lambda x: x.comments, reverse=True)[:max_lim]
 
@@ -107,8 +121,11 @@ def get_news(
     logger.info(f"Length returned data is {len(total_news)}")
 
     return sorted(total_news, key=lambda x: x.date, reverse=True)
-
-
+#
+#
 # scrape = get_news(url=HACKER_NEWS_URL)
-# # # print(get_ai_news(scrape))
+# aa = get_ai_news(scrape)
+#
+# for a in aa:
+#     print(a)
 # print(scrape[0])

@@ -16,15 +16,15 @@ from telegram.constants import ParseMode
 from hacker_news import (
     get_news,
     get_ai_news,
+    get_linux_news,
     get_today_news,
     get_high_point_news,
     get_high_comment_news,
 )
 from utils import logger
 
-
 application = Application.builder().token(os.environ["MAT_GPT_TOKEN"]).build()
-reply_keyboard = [["Today", "AI", "High Comments", "High Points"]]
+reply_keyboard = [["Today", "AI", "Linux", "High Comments", "High Points"]]
 CHOOSE_NEWS = 1
 
 
@@ -46,7 +46,7 @@ async def command_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 async def send_news(
-    update: Update, context: ContextTypes.DEFAULT_TYPE, news_func
+        update: Update, context: ContextTypes.DEFAULT_TYPE, news_func
 ) -> None:
     """
     Fetch and send news using the provided news function.
@@ -77,6 +77,11 @@ async def ai_news(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await send_news(update, context, get_ai_news)
 
 
+async def linux_news(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    logger.info("User %s chose AI news", update.message.from_user.first_name)
+    await send_news(update, context, get_linux_news)
+
+
 async def high_point_news(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.info("User %s chose high points news", update.message.from_user.first_name)
     await send_news(update, context, get_high_point_news)
@@ -94,7 +99,7 @@ async def today_news(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
 async def command_news(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     logger.info("User %s issued a news command", update.message.from_user.first_name)
-    reply_markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+    reply_markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True, resize_keyboard=True)
     await update.message.reply_text("Select an option:", reply_markup=reply_markup)
     return CHOOSE_NEWS
 
@@ -114,6 +119,8 @@ async def handle_news_selection(update: Update, context: ContextTypes.DEFAULT_TY
         await high_comment_news(update, context)
     elif query == "High Points":
         await high_point_news(update, context)
+    elif query == "Linux":
+        await linux_news(update, context)
     else:
         await update.message.reply_text("Invalid option, please try again.")
         return CHOOSE_NEWS
