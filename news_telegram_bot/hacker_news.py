@@ -65,7 +65,7 @@ def get_ai_news(
         num_return: int = 10,
 ) -> List[HNRecord]:
     texts = [item.title for item in total_list]
-    labels = classification(texts, threshold=0.74)
+    labels = classification(texts, threshold=0.4)
     ai_list = [total_list[idx] for idx in range(len(total_list)) if labels[idx] == "AI"]
     max_lim = max(len(ai_list), num_return)
     return sorted(ai_list, key=lambda x: x.comments, reverse=True)[:max_lim]
@@ -76,7 +76,7 @@ def get_linux_news(
         num_return: int = 10,
 ) -> List[HNRecord]:
     texts = [item.title for item in total_list]
-    labels = classification(texts, threshold=0.74)
+    labels = classification(texts, threshold=0.35)
     ai_list = [total_list[idx] for idx in range(len(total_list)) if labels[idx] == "Linux"]
     max_lim = max(len(ai_list), num_return)
     return sorted(ai_list, key=lambda x: x.comments, reverse=True)[:max_lim]
@@ -116,11 +116,14 @@ def get_news(
         time = parse_time(entry)
 
         if title and link and time:
-            total_news.append(HNRecord(title=title, url=link, points=points, comments=comments, date=time, short_url=short_link))
+            total_news.append(
+                HNRecord(title=title, url=link, points=points, comments=comments, date=time, short_url=short_link))
 
     logger.info(f"Length returned data is {len(total_news)}")
 
     return sorted(total_news, key=lambda x: x.date, reverse=True)
+
+
 #
 #
 # scrape = get_news(url=HACKER_NEWS_URL)

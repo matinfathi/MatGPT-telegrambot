@@ -1,5 +1,4 @@
 import asyncio
-import json
 import os
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
@@ -23,7 +22,7 @@ from hacker_news import (
 from utils import logger
 
 application = Application.builder().token(os.environ["MAT_GPT_TOKEN"]).build()
-reply_keyboard = [["Today", "AI", "Linux", "High Points"]]
+reply_keyboard = [["Today", "AI", "Linux", "High Comments", "High Points"]]
 CHOOSE_NEWS = 1
 
 
@@ -106,6 +105,8 @@ async def handle_news_selection(update: Update, context: ContextTypes.DEFAULT_TY
         await ai_news(update, context)
     elif query == "High Comments":
         await high_comment_news(update, context)
+    elif query == "High Points":
+        await high_point_news(update, context)
     elif query == "Linux":
         await linux_news(update, context)
     else:
@@ -115,11 +116,7 @@ async def handle_news_selection(update: Update, context: ContextTypes.DEFAULT_TY
     return ConversationHandler.END
 
 
-async def main(event, context):
-    event_body = event.get("body")
-    if not event_body:
-        return {"statusCode": 500, "body": "event body not available"}
-
+def main() -> None:
     application.add_handler(CommandHandler("start", command_start))
     application.add_handler(CommandHandler("cancel", command_cancel))
 
@@ -131,16 +128,8 @@ async def main(event, context):
         )
     )
 
-    try:
-        await application.initialize()
-        await application.process_update(
-            Update.de_json(json.loads(event["body"]), application.bot)
-        )
-        return {"statusCode": 200, "body": "Success"}
-    except Exception as ex:
-        logger.error("An error occurred: %s", str(ex))
-        return {"statusCode": 500, "body": f"Failure: {str(ex)}"}
+    application.run_polling()
 
 
-def lambda_handler(event, context):
-    return asyncio.get_event_loop().run_until_complete(main(event, context))
+def lambda_handler():
+    main()

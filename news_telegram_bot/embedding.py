@@ -9,6 +9,41 @@ from utils import logger
 
 
 def cohere_embedding(texts: List[str]) -> np.array:
+    CO_API_KEY = os.environ["CO_API_KEY"]
+
+    url = "https://api.cohere.com/v1/embed"
+    headers = {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "Authorization": f"Bearer {CO_API_KEY}"
+    }
+    batch_size = 90
+    all_embeddings = []
+
+    for i in range(0, len(texts), batch_size):
+        batch_texts = texts[i:i + batch_size]
+        data = {
+            "model": "embed-english-v3.0",
+            "texts": batch_texts,
+            "input_type": "classification"
+        }
+
+        response = requests.post(url, headers=headers, json=data)
+
+        logger.info(f"The status code for embedding is {response.status_code}")
+
+        if response.status_code != 200:
+            logger.error(f"Failed to get embeddings: {response.text}")
+            continue
+
+        response_json = response.json()
+
+        all_embeddings.extend(response_json["embeddings"])
+
+    return np.array(all_embeddings)
+
+
+def jina_embedding(texts: List[str]) -> np.array:
     logger.info(f"The input size is {len(texts)}")
 
     url = 'https://api.jina.ai/v1/embeddings'
@@ -24,7 +59,7 @@ def cohere_embedding(texts: List[str]) -> np.array:
         'encoding_type': 'float'
     }
 
-    response = requests.post(url, headers=headers, json=data)
+    response = requests.post(url, headers=headers, json=data, timeout=10)
     logger.info(f"The status code for embedding is {response}")
     response_json = json.loads(response.text)
     return np.array([item["embedding"] for item in response_json["data"]])
@@ -115,7 +150,7 @@ def dot_product_similarity_matrix(matrix1, matrix2):
     return np.dot(matrix1, matrix2.T)
 
 
-def classification(list_news: List[str], threshold: float = 0.78) -> List[str]:
+def classification(list_news: List[str], threshold: float = 0.4) -> List[str]:
     list_news_embedding = cohere_embedding(list_news)
 
     ai_router_embedding, linux_router_embedding = load_embeddings()
@@ -137,3 +172,5 @@ def classification(list_news: List[str], threshold: float = 0.78) -> List[str]:
 
     return most_similar_matrix.tolist()
 
+
+# print(classification(["OpenAI created a big chunk of data for training", "Red hat and linux are taking apart"]))
