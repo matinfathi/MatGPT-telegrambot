@@ -1,3 +1,11 @@
 .venv
 .idea
-news_telegram_bot/__pycache__
+matin_telegram_bot/__pycache__
+matin_telegram_bot/my_test.py
+matin_telegram_bot/utils/__pycache__/
+matin_telegram_bot/envvar.py
+my_test.py
+envvar.py
+aws_package
+__pycache__/
+my_deployment_package.zip

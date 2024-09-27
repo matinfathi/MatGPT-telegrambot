@@ -1,72 +1,20 @@
+from constants import HACKER_NEWS_URL
+from utils import HNRecord, logger
+from cohere import Cohere
+
+from bs4 import BeautifulSoup
 import numpy as np
 import requests
 
-from typing import List
-import json
-import os
+from datetime import datetime
+from typing import Optional, List
+import re
 
-from utils import logger
-
-
-def cohere_embedding(texts: List[str]) -> np.array:
-    CO_API_KEY = os.environ["CO_API_KEY"]
-
-    url = "https://api.cohere.com/v1/embed"
-    headers = {
-        "accept": "application/json",
-        "content-type": "application/json",
-        "Authorization": f"Bearer {CO_API_KEY}"
-    }
-    batch_size = 90
-    all_embeddings = []
-
-    for i in range(0, len(texts), batch_size):
-        batch_texts = texts[i:i + batch_size]
-        data = {
-            "model": "embed-english-v3.0",
-            "texts": batch_texts,
-            "input_type": "classification"
-        }
-
-        response = requests.post(url, headers=headers, json=data)
-
-        logger.info(f"The status code for embedding is {response.status_code}")
-
-        if response.status_code != 200:
-            logger.error(f"Failed to get embeddings: {response.text}")
-            continue
-
-        response_json = response.json()
-
-        all_embeddings.extend(response_json["embeddings"])
-
-    return np.array(all_embeddings)
-
-
-def jina_embedding(texts: List[str]) -> np.array:
-    logger.info(f"The input size is {len(texts)}")
-
-    url = 'https://api.jina.ai/v1/embeddings'
-
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': os.environ["JINA_API_KEY"]
-    }
-
-    data = {
-        'input': texts,
-        'model': 'jina-embeddings-v2-base-en',
-        'encoding_type': 'float'
-    }
-
-    response = requests.post(url, headers=headers, json=data, timeout=10)
-    logger.info(f"The status code for embedding is {response}")
-    response_json = json.loads(response.text)
-    return np.array([item["embedding"] for item in response_json["data"]])
+cohere = Cohere()
 
 
 def load_embeddings() -> np.array:
-    ai_news = cohere_embedding([
+    ai_news = cohere.embedding([
         "OpenAI Unveils GPT-5: The Future of Conversational AI: OpenAI has released its latest language model, GPT-5, "
         "promising groundbreaking improvements in natural language understanding and generation.",
         "Hugging Face Releases New Transformer Models for Multilingual NLP: Hugging Face has launched new transformer "
@@ -95,7 +43,7 @@ def load_embeddings() -> np.array:
         "tackling biases in machine learning algorithms, ensuring fairer and more equitable AI systems."
     ])
 
-    linux_news = cohere_embedding([
+    linux_news = cohere.embedding([
         "Linux Kernel 6.0 Released: What’s New and Improved: The latest version of the Linux kernel, 6.0, "
         "has been released, featuring numerous enhancements and new features aimed at improving performance and "
         "security.",
@@ -151,7 +99,7 @@ def dot_product_similarity_matrix(matrix1, matrix2):
 
 
 def classification(list_news: List[str], threshold: float = 0.4) -> List[str]:
-    list_news_embedding = cohere_embedding(list_news)
+    list_news_embedding = cohere.embedding(list_news)
 
     ai_router_embedding, linux_router_embedding = load_embeddings()
 
@@ -171,6 +119,126 @@ def classification(list_news: List[str], threshold: float = 0.4) -> List[str]:
     most_similar_matrix = matrix_labels[most_similar_indices]
 
     return most_similar_matrix.tolist()
+
+
+def remove_urls(text):
+    pattern = r'\([^()]*\)'
+    cleaned_text = re.sub(pattern, '', text)
+
+    return cleaned_text
+
+
+def parse_time(entry: BeautifulSoup) -> datetime.fromtimestamp:
+    time_tag = entry.find("a", class_="hn span3 story")
+    if time_tag and time_tag.has_attr("data-date"):
+        timestamp = int(time_tag["data-date"])
+        time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+    else:
+        time = None
+
+    return time
+
+
+def get_today_news(
+        total_list: List[HNRecord],
+        target_date: Optional[datetime] = datetime.today().strftime('%Y-%m-%d'),
+        num_return: int = 10,
+) -> List[HNRecord]:
+    today_news = []
+    for item in total_list:
+        date_date = datetime.strptime(item.date, '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d')
+
+        if date_date == target_date:
+            today_news.append(item)
+
+    return sorted(today_news, key=lambda x: x.points, reverse=True)[:num_return]
+
+
+def get_high_point_news(
+        total_list: List[HNRecord],
+        num_return: int = 10,
+) -> List[HNRecord]:
+    return sorted(total_list, key=lambda x: x.points, reverse=True)[:num_return]
+
+
+def get_high_comment_news(
+        total_list: List[HNRecord],
+        num_return: int = 10,
+) -> List[HNRecord]:
+    return sorted(total_list, key=lambda x: x.comments, reverse=True)[:num_return]
+
+
+def get_ai_news(
+        total_list: List[HNRecord],
+        num_return: int = 10,
+) -> List[HNRecord]:
+    texts = [item.title for item in total_list]
+    labels = classification(texts, threshold=0.4)
+    ai_list = [total_list[idx] for idx in range(len(total_list)) if labels[idx] == "AI"]
+    max_lim = max(len(ai_list), num_return)
+    return sorted(ai_list, key=lambda x: x.comments, reverse=True)[:max_lim]
+
+
+def get_linux_news(
+        total_list: List[HNRecord],
+        num_return: int = 10,
+) -> List[HNRecord]:
+    texts = [item.title for item in total_list]
+    labels = classification(texts, threshold=0.35)
+    ai_list = [total_list[idx] for idx in range(len(total_list)) if labels[idx] == "Linux"]
+    max_lim = max(len(ai_list), num_return)
+    return sorted(ai_list, key=lambda x: x.comments, reverse=True)[:max_lim]
+
+
+def get_news(
+        url: Optional[str] = HACKER_NEWS_URL,
+) -> List[HNRecord]:
+    total_news = []
+    response = requests.get(url)
+    logger.info(f"The status code for scraping is {response}")
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.text, "html.parser")
+    else:
+        raise Exception(f"Error in getting website content with status code: {response.status_code}")
+
+    entries = soup.find_all("li", class_="entry row")
+    logger.info(f"The length of scraped list is {len(entries)}")
+
+    for entry in entries:
+        story_link_tag = entry.find("a", class_="link span15 story")
+        if story_link_tag:
+            link = story_link_tag.get("href")
+            title = remove_urls(story_link_tag.get_text(strip=True))
+            short_link = link.split('/')[2] if link else None
+        else:
+            link = None
+            title = None
+            short_link = None
+
+        comments_tag = entry.find("span", class_="comments span2")
+        comments = int(comments_tag.get_text(strip=True)) if comments_tag and comments_tag.get_text(strip=True) else 0
+
+        points_tag = entry.find("span", class_="points span1")
+        points = int(points_tag.get_text(strip=True)) if points_tag and points_tag.get_text(strip=True) else 0
+
+        time = parse_time(entry)
+
+        if title and link and time:
+            total_news.append(
+                HNRecord(title=title, url=link, points=points, comments=comments, date=time, short_url=short_link))
+
+    logger.info(f"Length returned data is {len(total_news)}")
+
+    return sorted(total_news, key=lambda x: x.date, reverse=True)
+
+#
+#
+# scrape = get_news(url=HACKER_NEWS_URL)
+# aa = get_ai_news(scrape)
+#
+# for a in aa:
+#     print(a)
+# print(scrape[0])
 
 
 # print(classification(["OpenAI created a big chunk of data for training", "Red hat and linux are taking apart"]))
