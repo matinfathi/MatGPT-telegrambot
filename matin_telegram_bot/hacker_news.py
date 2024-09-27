@@ -230,15 +230,3 @@ def get_news(
     logger.info(f"Length returned data is {len(total_news)}")
 
     return sorted(total_news, key=lambda x: x.date, reverse=True)
-
-#
-#
-# scrape = get_news(url=HACKER_NEWS_URL)
-# aa = get_ai_news(scrape)
-#
-# for a in aa:
-#     print(a)
-# print(scrape[0])
-
-
-# print(classification(["OpenAI created a big chunk of data for training", "Red hat and linux are taking apart"]))

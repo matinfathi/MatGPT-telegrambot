@@ -2,25 +2,12 @@ from ast import literal_eval
 import asyncio
 import json
 import os
+
+from telegram.ext import Application, CommandHandler, ConversationHandler, MessageHandler, filters, ContextTypes
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    ConversationHandler,
-    MessageHandler,
-    filters,
-    ContextTypes,
-)
 from telegram.constants import ParseMode
 
-from hacker_news import (
-    get_news,
-    get_ai_news,
-    get_linux_news,
-    get_today_news,
-    get_high_point_news,
-    get_high_comment_news,
-)
+from hacker_news import get_news, get_ai_news, get_linux_news, get_today_news, get_high_point_news, get_high_comment_news
 from video_summarize import video_summarize, video_summarize_short
 from utils import logger
 

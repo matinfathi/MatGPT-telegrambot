@@ -94,5 +94,3 @@ that summarizes the video in a few sentences. Make sure to include the main poin
 
     return answer
 
-
-# print(get_video_transcript("https://www.youtube.com/watch?v=GFE8qfwN23U"))
