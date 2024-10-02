@@ -57,7 +57,8 @@ def video_summarize(youtube_url: str) -> str:
 {transcript}
 
 This is a transcript for a video, I want you to provide for me a nice bullet point list of the most important points \
-in the video. Make the list explicit and understandable. for each point about a paragraph. like this: 
+in the video. Make the list explicit and understandable. for each point about a paragraph also use simple \
+words for description. like this: 
 - **sub topic**: description
 - **sub topic**: description
 ..."""
@@ -85,7 +86,8 @@ def video_summarize_short(youtube_url: str) -> str:
 {transcript}
 
 This is a transcript for a video, I want you to provide for me a simple summary of the video, Generate a paragraph \
-that summarizes the video in a few sentences. Make sure to include the main points of the video. like this:
+that summarizes the video in a few sentences. Make sure to include the main points of the video and also use simple \
+words for description. like this:
 - **summary**: description"""
 
     answer = cohere.query(prompt=prompt)
