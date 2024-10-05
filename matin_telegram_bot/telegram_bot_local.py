@@ -1,5 +1,6 @@
 from ast import literal_eval
 import os
+import envvar
 
 from telegram.ext import Application, CommandHandler, ConversationHandler, MessageHandler,\
     filters, ContextTypes
@@ -12,9 +13,6 @@ from video_summarize import video_summarize, video_summarize_short
 from utils import logger
 
 application = Application.builder().token(os.environ["TEST_MAT_GPT_TOKEN"]).build()
-reply_keyboard = [["Today", "AI", "Linux"]]
-CHOOSE_NEWS = 1
-CHOOSE_VIDEO_SUMMARY = 1
 list_users = literal_eval(os.environ["LIST_USERS"])
 
 

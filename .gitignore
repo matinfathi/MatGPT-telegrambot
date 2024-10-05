@@ -9,3 +9,4 @@ envvar.py
 aws_package
 __pycache__/
 my_deployment_package.zip
+.env
